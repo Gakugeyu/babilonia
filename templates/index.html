@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <title>Babilônia - Cadastro de Livros</title>
+
+
+</head>
+
+<body>
+    <header>
+        <h1>Biblioteca Babilônia</h1>
+        <p>Interface simples para testar o backend FastAPI</p>
+    </header>
+
+    <main>
+        <section class="card configuracao">
+            <h2>Configuração da API</h2>
+
+            <div class="campo">
+                <label for="apiUrl">Endereço do backend</label>
+                <input
+                    id="apiUrl"
+                    type="text"
+                    value="http://127.0.0.1:8000"
+                    placeholder="http://127.0.0.1:8000"
+                >
+            </div>
+
+            <div class="botoes">
+                <button type="button" onclick="verificarApi()">
+                    Testar conexão
+                </button>
+
+                <button type="button" class="secundario" onclick="abrirDocumentacao()">
+                    Abrir Swagger
+                </button>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Cadastrar livro</h2>
+
+            <form id="formLivro">
+                <div class="campo">
+                    <label for="titulo">Título</label>
+                    <input id="titulo" type="text" required>
+                </div>
+
+                <div class="campo">
+                    <label for="autor">Autor</label>
+                    <input id="autor" type="text" required>
+                </div>
+
+                <div class="campo">
+                    <label for="ano">Ano de publicação</label>
+                    <input id="ano" type="number" min="0" required>
+                </div>
+
+                <div class="campo">
+                    <label for="isbn">ISBN</label>
+                    <input id="isbn" type="number" min="0" required>
+                </div>
+
+                <button type="submit">Cadastrar livro</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>Resposta do backend</h2>
+
+            <div id="statusApi" class="status">
+                API não verificada
+            </div>
+
+            <pre id="resultado">A resposta da API aparecerá aqui.</pre>
+        </section>
+    </main>
+
+    <footer>
+        Projeto Babilônia — FastAPI + HTML + JavaScript
+    </footer>
+
+    <script>
+        const formulario = document.getElementById("formLivro");
+        const resultado = document.getElementById("resultado");
+        const statusApi = document.getElementById("statusApi");
+
+        function obterUrlApi() {
+            return document.getElementById("apiUrl").value.replace(/\/$/, "");
+        }
+
+        function mostrarResultado(conteudo) {
+            resultado.textContent =
+                typeof conteudo === "string"
+                    ? conteudo
+                    : JSON.stringify(conteudo, null, 2);
+        }
+
+        async function verificarApi() {
+            const apiUrl = obterUrlApi();
+
+            statusApi.textContent = "Verificando...";
+            statusApi.className = "status";
+
+            try {
+                const resposta = await fetch(`${apiUrl}/`);
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(`Erro HTTP ${resposta.status}`);
+                }
+
+                statusApi.textContent = "API conectada";
+                statusApi.className = "status online";
+                mostrarResultado(dados);
+            } catch (erro) {
+                statusApi.textContent = "API desconectada";
+                statusApi.className = "status offline";
+
+                mostrarResultado(
+                    "Não foi possível acessar o backend.\n\n" +
+                    "Verifique se o Uvicorn está executando e se o CORS foi configurado.\n\n" +
+                    `Detalhes: ${erro.message}`
+                );
+            }
+        }
+
+        formulario.addEventListener("submit", async function (evento) {
+            evento.preventDefault();
+
+            const apiUrl = obterUrlApi();
+
+            const livro = {
+                titulo: document.getElementById("titulo").value.trim(),
+                autor: document.getElementById("autor").value.trim(),
+                ano_publicacao: Number(document.getElementById("ano").value),
+                isbn: Number(document.getElementById("isbn").value)
+            };
+
+            mostrarResultado("Enviando livro para o backend...");
+
+            try {
+                const resposta = await fetch(`${apiUrl}/api/livros/`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(livro)
+                });
+
+                let dados;
+
+                try {
+                    dados = await resposta.json();
+                } catch {
+                    dados = await resposta.text();
+                }
+
+                if (!resposta.ok) {
+                    mostrarResultado({
+                        erro: `Erro HTTP ${resposta.status}`,
+                        detalhes: dados
+                    });
+                    return;
+                }
+
+                mostrarResultado({
+                    mensagem: "Livro cadastrado com sucesso!",
+                    livro: dados
+                });
+
+                formulario.reset();
+            } catch (erro) {
+                mostrarResultado(
+                    "Erro ao enviar o cadastro.\n\n" +
+                    "Verifique se o backend está ligado e se o CORS foi habilitado.\n\n" +
+                    `Detalhes: ${erro.message}`
+                );
+            }
+        });
+
+        function abrirDocumentacao() {
+            window.open(`${obterUrlApi()}/docs`, "_blank");
+        }
+    </script>
+</body>
+</html>

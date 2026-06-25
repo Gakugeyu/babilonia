@@ -11,7 +11,7 @@ class LivroRepositorio:
     def listar_livros(self) -> list[Livro]:
         with self.banco.conectar() as conexao:
             cursor = conexao.cursor()
-            cursor.execute("SELECT id_, titulo, autor, ano_publicacao, isbn FROM livros")
+            cursor.execute("SELECT id, titulo, autor, ano_publicacao, isbn FROM livros")
             linhas = cursor.fetchall()
             livros = [Livro(id_=linha[0], titulo=linha[1], autor=linha[2], ano_publicacao=linha[3], isbn=linha[4]) 
                       for linha in linhas]
@@ -22,5 +22,5 @@ class LivroRepositorio:
             cursor = conexao.cursor()
             cursor.execute("INSERT INTO livros (titulo, autor, ano_publicacao, isbn) VALUES (?,?,?,?)",
             (livro.titulo, livro.autor, livro.ano_publicacao, livro.isbn))
-            livro_id = cursor.lastrowid
-            return Livro(id_=livro_id, titulo=livro.titulo, autor=livro.autor, ano_publicacao=livro.ano_publicacao, isbn=livro.isbn)
+            livro._id = cursor.lastrowid
+            return Livro(id_=livro._id, titulo=livro.titulo, autor=livro.autor, ano_publicacao=livro.ano_publicacao, isbn=livro.isbn)
